@@ -57,5 +57,11 @@ def load_config(config_path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
 
 if __name__ == "__main__":
     config = load_config()
-    print(config)
-    print(config.tushare.token)
+
+    api: ProAPI = ts.pro_api(config.tushare.token)
+    result = api.daily(
+        ts_code="000001.SZ",
+        start_date="20180701",
+        end_date="20180718",
+    )
+    print(result)
