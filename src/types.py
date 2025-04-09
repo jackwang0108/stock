@@ -83,9 +83,7 @@ class ProAPI(ABC):
         ts_code: Optional[str] = None,
         is_hs: Optional[Literal["N", "H", "S"]] = None,
         market: Optional[Literal["主板", "创业板", "科创板", "CDR", "北交所"]] = None,
-        exchange: Optional[
-            Literal["SSE", "SZSE", "CFFEX", "SHFE", "CZCE", "DCE", "INE"]
-        ] = "SSE",
+        exchange: Optional[Literal["SSE", "SZSE", "BSE"]] = "SSE",
         list_status: Optional[Literal["L", "D", "P"]] = "L",
     ) -> pd.DataFrame:
         """
@@ -98,7 +96,7 @@ class ProAPI(ABC):
             ts_code (Optional[str], optional): 指定获取基础信息的股票的tushare股票代码.
             is_hs (Optional[Literal[&quot;N&quot;, &quot;H&quot;, &quot;S&quot;]], optional): 获取沪深港通股票的基础信息, &quot;N&quot; 获取非沪深港通股票的基础信息, &quot;H&quot; 获得沪股通股票的基础信息, &quot;S&quot; 获得深股通股票的基础信息. 留空表示获得所有股票的基础信息.
             market (Optional[Literal[&quot;&quot;, &quot;主板&quot;, &quot;创业板&quot;, &quot;科创板&quot;, &quot;CDR&quot;, &quot;北交所&quot;], optional): 获得指定板块中的股票的基础信息.
-            exchange (Optional[ Literal[&quot;SSE&quot;, &quot;SZSE&quot;, &quot;CFFEX&quot;, &quot;SHFE&quot;, &quot;CZCE&quot;, &quot;DCE&quot;, &quot;INE&quot;] ], optional): 获得指定交易所中的股票的基础信息.
+            exchange (Optional[ Literal[&quot;SSE&quot;, &quot;SZSE&quot;, &quot;BSE&quot;] ], optional): 获得指定交易所中的股票的基础信息. SSE上交所, SZSE深交所, BSE北交所.
             list_status (Optional[Literal[&quot;L&quot;, &quot;D&quot;, &quot;P&quot;]], optional): 获得指定状态的股票的基础信息. &quot;L&quot; 正常交易, &quot;D&quot; 退市, &quot;P&quot; 暂停上市.
 
         Returns:
