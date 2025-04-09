@@ -28,9 +28,8 @@ CACHE_PATH = Path(__file__).parents[1] / ".cache" / "daily_downloader"
 CACHE_PATH.mkdir(parents=True, exist_ok=True)
 
 
-api: ProAPI
-config: Config
-config, api = get_api(config_path=Path(__file__).parents[1] / "config.yaml")
+api: ProAPI = None
+config: Config = None
 
 
 def get_listed_share() -> pd.DataFrame:
@@ -92,6 +91,11 @@ def get_share_history(
 
 def main(args: Namespace):
     """主函数"""
+
+    global api, config
+
+    config, api = get_api(config_path=Path(__file__).parents[1] / "config.yaml")
+
     listed_shares = get_listed_share()
 
     outdir = None
