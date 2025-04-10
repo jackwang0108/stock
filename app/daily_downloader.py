@@ -58,7 +58,11 @@ def get_listed_share() -> pd.DataFrame:
 
 
 def get_share_history(
-    ts_code: str, cache_name: str, start_date: date, end_date: date
+    ts_code: str,
+    cache_name: str,
+    start_date: date,
+    end_date: date,
+    force_refresh: bool = False,
 ) -> pd.DataFrame:
 
     def data_getter():
@@ -69,7 +73,9 @@ def get_share_history(
         )
 
     cache_path = CACHE_PATH / "daily" / f"{cache_name}.csv"
-    with cached_data(cache_path=cache_path, data_getter=data_getter) as df:
+    with cached_data(
+        cache_path=cache_path, data_getter=data_getter, force_refresh=force_refresh
+    ) as df:
         result = df.astype(
             {
                 "ts_code": "str",
@@ -119,6 +125,7 @@ def main(args: Namespace):
                 cache_name=(name := f"{row.ts_code}_{row.name}"),
                 start_date=to_pydate(args.start),
                 end_date=to_pydate(args.end),
+                force_refresh=args.force,
             )
 
             if outdir is not None:
@@ -139,7 +146,7 @@ def get_args() -> Namespace:
         help="配置文件路径",
     )
     parser.add_argument(
-        "--refresh",
+        "--force",
         action="store_true",
         help="强制刷新缓存数据",
     )
