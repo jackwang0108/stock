@@ -6,3 +6,16 @@ api_profile:
         expire_days: 1
     default:
         expire_days: 5
+
+field_types:
+    ts_code: "str"
+    trade_date: "str"
+    open: "float64"
+    high: "float64"
+    low: "float64"
+    close: "float64"
+    pre_close: "float64"
+    change: "float64"
+    pct_chg: "float64"
+    vol: "float64"
+    amount: "float64"
