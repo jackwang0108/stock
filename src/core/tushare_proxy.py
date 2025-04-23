@@ -255,31 +255,4 @@ if __name__ == "__main__":
     config = load_config()
     proxy = TuShareProxy(config)
 
-    today = datetime.now()
-    start = today - timedelta(days=30)
-
-    # print(proxy.listed_shares().head(5))
-
-    print(
-        proxy.trade_cal(
-            start_date=start.strftime("%Y%m%d"),
-            end_date=today.strftime("%Y%m%d"),
-        ).head(5)
-    )
-
-    # for _ in range(3):
-    #     print(proxy.daily(trade_date=today.strftime("%Y%m%d")).head(5))
-    #     print(
-    #         proxy.trade_cal(
-    #             start_date=start.strftime("%Y%m%d"),
-    #             end_date=today.strftime("%Y%m%d"),
-    #         ).head(5)
-    #     )
-
-    #     print(
-    #         proxy.stock_basic(
-    #             fields="ts_code,symbol,name,area,industry,fullname,enname,cnspell,market,exchange,curr_type,list_status,list_date,delist_date,is_hs,act_name,act_ent_type"
-    #         ).head(5)
-    #     )
-    #     print(proxy.stk_limit(trade_date=today.strftime("%Y%m%d")).head(5))
-    #     print(proxy.cache_engine.statics())
+    print(proxy.listed_shares().head(5))

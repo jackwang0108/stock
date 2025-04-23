@@ -46,6 +46,10 @@ class APIProfile(BaseModel):
     default: APIConfig = APIConfig()
 
     daily: Optional[APIConfig] = None
+    trade_cal: Optional[APIConfig] = None
+    stock_basic: Optional[APIConfig] = None
+    listed_shares: Optional[APIConfig] = None
+    stk_limits: Optional[APIConfig] = None
 
     def get_config(self, api_name: str) -> APIConfig:
         """获取指定API的配置, 如果配置文件中没有特定配置则返回默认配置"""
@@ -97,7 +101,7 @@ class FieldTypesConfig(BaseModel):
         "str", description="沪深港通标志 (N:否, H:沪股通, S:深股通)"
     )
     act_name: PandasDType = Field("str", description="实控人名称")
-    act_ent_name: PandasDType = Field("str", description="实控人企业性质")
+    act_ent_type: PandasDType = Field("str", description="实控人企业性质")
     up_limit: PandasDType = Field("float64", description="涨停价")
     down_limit: PandasDType = Field("float64", description="跌停价")
 
