@@ -61,10 +61,8 @@ PandasDType = Literal[
 class FieldTypesConfig(BaseModel):
     """字段类型映射配置（对应pandas的dtype）"""
 
-    ts_code: PandasDType = Field("str", description="证券代码，格式：000001.SZ")
-    trade_date: PandasDType = Field(
-        "str", description="交易日期（建议后续转为datetime64）"
-    )
+    ts_code: PandasDType = Field("str", description="Tushare证券代码，格式：000001.SZ")
+    trade_date: PandasDType = Field("str", description="交易日期")
     open: PandasDType = Field("float64", description="开盘价")
     high: PandasDType = Field("float64", description="最高价")
     low: PandasDType = Field("float64", description="最低价")
@@ -74,6 +72,34 @@ class FieldTypesConfig(BaseModel):
     pct_chg: PandasDType = Field("float64", description="涨跌幅（单位：%）")
     vol: PandasDType = Field("float64", description="成交量（单位：手）")
     amount: PandasDType = Field("float64", description="成交额（单位：千元）")
+    exchange: PandasDType = Field(
+        "str",
+        description="交易所代号 (SSE上交所, SZSE深交所, CFFEX中金所, SHFE上期所, CZCE郑商所, DCE大商所, INE上能源)",
+    )
+    cal_date: PandasDType = Field("str", description="日历日期")
+    is_open: PandasDType = Field("str", description="是否交易 (0:休市, 1:交易)")
+    pretrade_date: PandasDType = Field("str", description="上一个交易日")
+    symbol: PandasDType = Field("str", description="交易所证券名称, 格式:000001")
+    name: PandasDType = Field("str", description="股票名称")
+    area: PandasDType = Field("str", description="地域")
+    industry: PandasDType = Field("str", description="所属行业")
+    fullname: PandasDType = Field("str", description="股票全称")
+    enname: PandasDType = Field("str", description="英文全称")
+    cnspell: PandasDType = Field("str", description="拼音缩写")
+    market: PandasDType = Field("str", description="市场类型")
+    curr_type: PandasDType = Field("str", description="交易货币类型")
+    list_status: PandasDType = Field(
+        "str", description="上市状态 (L:上市, D:退市, P:暂停上市)"
+    )
+    list_date: PandasDType = Field("str", description="上市日期")
+    delist_date: PandasDType = Field("str", description="退市日期")
+    is_hs: PandasDType = Field(
+        "str", description="沪深港通标志 (N:否, H:沪股通, S:深股通)"
+    )
+    act_name: PandasDType = Field("str", description="实控人名称")
+    act_ent_name: PandasDType = Field("str", description="实控人企业性质")
+    up_limit: PandasDType = Field("float64", description="涨停价")
+    down_limit: PandasDType = Field("float64", description="跌停价")
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 

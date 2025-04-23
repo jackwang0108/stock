@@ -141,8 +141,8 @@ class TuShareProxy:
         ts_code: Optional[str] = None,
         is_hs: Optional[Literal["N", "H", "S"]] = None,
         market: Optional[Literal["主板", "创业板", "科创板", "CDR", "北交所"]] = None,
-        exchange: Optional[Literal["SSE", "SZSE", "BSE"]] = "SSE",
-        list_status: Optional[Literal["L", "D", "P"]] = "L",
+        exchange: Optional[Literal["SSE", "SZSE", "BSE"]] = None,
+        list_status: Optional[Literal["L", "D", "P"]] = None,
     ) -> pd.DataFrame:
         """
         stock_basic 获取股票基本信息
@@ -189,6 +189,24 @@ class TuShareProxy:
                 "exchange": exchange,
                 "list_status": list_status,
             },
+        )
+
+    def listed_shares(self) -> pd.DataFrame:
+        """
+        listed_shares 获取上市公司列表
+
+        Returns:
+            pd.DataFrame: 上市公司列表
+                名称	        类型	默认显示	描述
+                ts_code	        str	    Y	    TS代码
+                symbol	        str	    Y	    股票代码
+                name	        str	    Y	    股票名称
+                full_name	    str	    N	    股票全称
+                cnspell	        str	    Y	    拼音缩写
+                exchange	    str	    N	    交易所代码
+        """
+        return self.stock_basic(
+            fields="ts_code,symbol,name,full_name,cnspell,exchange", list_status="L"
         )
 
     def stk_limit(
@@ -239,20 +257,29 @@ if __name__ == "__main__":
 
     today = datetime.now()
     start = today - timedelta(days=30)
-    for _ in range(3):
 
-        print(proxy.daily(trade_date=today.strftime("%Y%m%d")).head(5))
-        print(
-            proxy.trade_cal(
-                start_date=start.strftime("%Y%m%d"),
-                end_date=today.strftime("%Y%m%d"),
-            ).head(5)
-        )
+    # print(proxy.listed_shares().head(5))
 
-        print(
-            proxy.stock_basic(
-                fields="ts_code,symbol,name,area,industry,fullname,enname,cnspell,market,exchange,curr_type,list_status,list_date,delist_date,is_hs,act_name,act_ent_type"
-            ).head(5)
-        )
-        print(proxy.stk_limit(trade_date=today.strftime("%Y%m%d")).head(5))
-        print(proxy.cache_engine.statics())
+    print(
+        proxy.trade_cal(
+            start_date=start.strftime("%Y%m%d"),
+            end_date=today.strftime("%Y%m%d"),
+        ).head(5)
+    )
+
+    # for _ in range(3):
+    #     print(proxy.daily(trade_date=today.strftime("%Y%m%d")).head(5))
+    #     print(
+    #         proxy.trade_cal(
+    #             start_date=start.strftime("%Y%m%d"),
+    #             end_date=today.strftime("%Y%m%d"),
+    #         ).head(5)
+    #     )
+
+    #     print(
+    #         proxy.stock_basic(
+    #             fields="ts_code,symbol,name,area,industry,fullname,enname,cnspell,market,exchange,curr_type,list_status,list_date,delist_date,is_hs,act_name,act_ent_type"
+    #         ).head(5)
+    #     )
+    #     print(proxy.stk_limit(trade_date=today.strftime("%Y%m%d")).head(5))
+    #     print(proxy.cache_engine.statics())
