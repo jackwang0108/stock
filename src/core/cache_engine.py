@@ -86,7 +86,7 @@ class TushareCacheEngine:
             return None
 
         self.hit += 1
-        return pd.read_csv(cache_path, encoding="utf-8")
+        return pd.read_csv(cache_path, encoding="utf-8", dtype=str)
 
 
 if __name__ == "__main__":

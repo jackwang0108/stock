@@ -47,13 +47,13 @@ class TuShareProxy:
 
         # 调用真实API
         api_func: Callable = getattr(self.api, api_name)
-        fresh_data: pd.DataFrame = api_func(**params)
+        fresh_data: pd.DataFrame = self._convert_dtypes(api_func(**params))
 
         # 保存到缓存
         if not fresh_data.empty:
             self.cache_engine.save_to_cache(api_name, params, fresh_data)
 
-        return self._convert_dtypes(fresh_data)
+        return fresh_data
 
     def daily(
         self,
@@ -201,7 +201,6 @@ class TuShareProxy:
                 ts_code	        str	    Y	    TS代码
                 symbol	        str	    Y	    股票代码
                 name	        str	    Y	    股票名称
-                full_name	    str	    N	    股票全称
                 cnspell	        str	    Y	    拼音缩写
                 exchange	    str	    N	    交易所代码
         """
