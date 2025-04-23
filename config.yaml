@@ -4,6 +4,14 @@ tushare:
 api_profile:
     daily:
         expire_days: 1
+    trade_cal:
+        expire_days: 1
+    stock_basic:
+        expire_days: 1
+    listed_shares:
+        expire_days: 1
+    stk_limits:
+        expire_days: 1
     default:
         expire_days: 5
 
