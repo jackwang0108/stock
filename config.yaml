@@ -1,2 +1,8 @@
 tushare:
-    token: ""
+    token: "2876ea85cb005fb5fa17c809a98174f2d5aae8b1f830110a5ead6211"
+
+api_profile:
+    daily:
+        expire_days: 1
+    default:
+        expire_days: 5
