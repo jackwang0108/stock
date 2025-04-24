@@ -13,5 +13,6 @@
         "tscode",
         "ttflist",
         "tushare"
-    ]
+    ],
+    "git.ignoreLimitWarning": true
 }
