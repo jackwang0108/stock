@@ -1,5 +1,5 @@
 """
-activeness.py 分析全市场股票的股性
+activeness.py 计算全市场股票的股性
 
     @Time    : 2025/04/23
     @Author  : JackWang
@@ -9,14 +9,19 @@ activeness.py 分析全市场股票的股性
 """
 
 # Standard Library
-from datetime import datetime, timedelta
+from pathlib import Path
+from datetime import datetime
 
 # Third-Party Library
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from rich import print
-from rich.progress import Progress, BarColumn, TimeRemainingColumn, TextColumn
+from rich.progress import (
+    Progress,
+    BarColumn,
+    TimeRemainingColumn,
+    TimeElapsedColumn,
+    TextColumn,
+)
 
 # My Library
 from ..utils.config import load_config
@@ -54,11 +59,17 @@ def main():
     )
     main_market_shares = listed_shares[main_market_mask]
 
+    st_mask = listed_shares["name"].str.contains("ST")
+    main_market_shares = main_market_shares[~st_mask]
+
     with Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
-        "[progress.percentage]{task.percentage:>3.0f}%",
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         TimeRemainingColumn(),
+        TimeElapsedColumn(),
+        expand=True,
+        transient=True,
     ) as progress:
         task = progress.add_task("计算涨停次数", total=len(main_market_shares))
 
@@ -95,7 +106,9 @@ def main():
 
     result = pd.DataFrame(result).sort_values(by="up_limit_times", ascending=False)
 
-    result.to_csv("./test.csv")
+    output_dir = Path(__file__).parents[2] / "analysis"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    result.to_csv(Path(__file__).parents[2] / "analysis/activeness.csv", index=False)
 
 
 if __name__ == "__main__":
