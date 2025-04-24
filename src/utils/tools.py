@@ -36,7 +36,7 @@ def _get_tscode_name_symbol_convert() -> (
         name: Optional[str] = None,
         symbol: Optional[str] = None,
     ) -> tuple[str, str, str]:
-        assert not (ts_code is None and name is None and symbol is None)
+        assert ts_code is not None or name is not None or symbol is not None
         if ts_code is not None:
             shares = listed_shares.set_index("ts_code")
             name = shares.loc[ts_code]["name"]
