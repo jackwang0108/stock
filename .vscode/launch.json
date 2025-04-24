@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python 调试程序: src.core模块",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.core.${fileBasenameNoExtension}"
+        },
+        {
             "name": "Python 调试程序: src.analysis模块",
             "type": "debugpy",
             "request": "launch",
