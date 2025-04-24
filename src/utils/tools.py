@@ -10,6 +10,7 @@ tools.py 提供了一系列方便分析股票的工具
 
 # Standard Library
 from typing import Optional
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 
 # Third-Party Library
@@ -25,34 +26,65 @@ config = load_config()
 proxy = TuShareProxy(config)
 
 
+def _get_tscode_name_symbol_convert() -> (
+    Callable[[str, str, str], tuple[str, str, str]]
+):
+    listed_shares = proxy.listed_shares()
+
+    def tscode_name_symbol_convert(
+        ts_code: Optional[str] = None,
+        name: Optional[str] = None,
+        symbol: Optional[str] = None,
+    ) -> tuple[str, str, str]:
+        assert not (ts_code is None and name is None and symbol is None)
+        if ts_code is not None:
+            shares = listed_shares.set_index("ts_code")
+            name = shares.loc[ts_code]["name"]
+            symbol = shares.loc[ts_code]["symbol"]
+        elif name is not None:
+            shares = listed_shares.set_index("name")
+            ts_code = shares.loc[name]["ts_code"]
+            symbol = shares.loc[name]["symbol"]
+        elif symbol is not None:
+            shares = listed_shares.set_index("symbol")
+            ts_code = shares.loc[symbol]["ts_code"]
+            name = shares.loc[symbol]["name"]
+        return ts_code, name, symbol
+
+    return tscode_name_symbol_convert
+
+
+_tscode_name_symbol_converter = _get_tscode_name_symbol_convert()
+
+
 def tscode2name(ts_code: str) -> str:
     """tscode2name 将TuShare股票代码转换为股票名称"""
-    return proxy.listed_shares().set_index("ts_code").loc[ts_code]["name"]
+    return _tscode_name_symbol_converter(ts_code=ts_code)[1]
 
 
 def name2tscode(name: str) -> str:
     """name2tscode 将股票名称转换为TuShare股票代码"""
-    return proxy.listed_shares().set_index("name").loc[name]["ts_code"]
+    return _tscode_name_symbol_converter(name=name)[0]
 
 
 def symbol2tscode(symbol: str) -> str:
     """symbol2tscode 将交易所股票代码转换为TuShare股票代码"""
-    return proxy.listed_shares().set_index("symbol").loc[symbol]["ts_code"]
+    return _tscode_name_symbol_converter(symbol=symbol)[0]
 
 
 def tscode2symbol(ts_code: str) -> str:
     """tscode2symbol 将TuShare股票代码转换为交易所股票代码"""
-    return proxy.listed_shares().set_index("ts_code").loc[ts_code]["symbol"]
+    return _tscode_name_symbol_converter(ts_code=ts_code)[2]
 
 
 def name2symbol(name: str) -> str:
     """name2symbol 将股票名称转换为交易所股票代码"""
-    return proxy.listed_shares().set_index("name").loc[name]["symbol"]
+    return _tscode_name_symbol_converter(name=name)[2]
 
 
 def symbol2name(symbol: str) -> str:
     """symbol2name 将交易所股票代码转换为股票名称"""
-    return proxy.listed_shares().set_index("symbol").loc[symbol]["name"]
+    return _tscode_name_symbol_converter(symbol=symbol)[1]
 
 
 def concat_df(
