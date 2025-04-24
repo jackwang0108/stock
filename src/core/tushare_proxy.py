@@ -9,6 +9,7 @@ tushare_proxy.py 为TuShare的代理实现
 """
 
 # Standard Library
+from functools import wraps
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, Literal, Optional
@@ -19,8 +20,46 @@ import tushare as ts
 
 # My Library
 from ..utils.config import Config
-
 from .cache_engine import TushareCacheEngine
+
+
+def incremental_update_wrapper(api_name: str) -> Callable:
+    """智能增量更新装饰器工厂"""
+
+    def decorator(method: Callable) -> Callable:
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            # 检查是否启用增量更新
+            if not self.config.api_profile.get_config(api_name).incremental_update:
+                return method(self, *args, **kwargs)
+
+            # 解析参数
+            params = method.__annotations__
+            ts_code = kwargs.get("ts_code")
+            trade_date = kwargs.get("trade_date")
+            start_date = kwargs.get("start_date")
+            end_date = kwargs.get("end_date")
+
+            # 情况1：单日全市场查询（不启用增量更新）
+            if trade_date is not None and ts_code is None:
+                return method(self, *args, **kwargs)
+
+            # 情况2：时间段查询（启用增量更新）
+            if ts_code is not None and start_date is not None and end_date is not None:
+                return self._smart_incremental_query(
+                    api_name=api_name,
+                    ts_code=ts_code,
+                    start_date=start_date,
+                    end_date=end_date,
+                    original_params=kwargs,
+                )
+
+            # 其他情况保持原逻辑
+            return method(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 class TuShareProxy:
@@ -40,8 +79,101 @@ class TuShareProxy:
         """获取最近的一个交易日"""
         pass
 
+    def _smart_incremental_query(
+        self,
+        api_name: str,
+        ts_code: str,
+        start_date: str,
+        end_date: str,
+        original_params: dict,
+    ) -> pd.DataFrame:
+        """
+        智能增量查询核心逻辑
+        """
+        # 转换日期为datetime对象
+        req_start = datetime.strptime(start_date, "%Y%m%d")
+        req_end = datetime.strptime(end_date, "%Y%m%d")
+
+        # 初始缓存范围（6年）
+        cache_end = datetime(year=2025, month=4, day=23)
+        cache_start = cache_end - timedelta(days=365 * 6)
+
+        # 生成初始缓存查询参数
+        cache_params = {
+            "ts_code": ts_code,
+            "start_date": cache_start.strftime("%Y%m%d"),
+            "end_date": cache_end.strftime("%Y%m%d"),
+        }
+
+        # 尝试从缓存获取
+        cached = self._query(api_name, params=cache_params, use_cache=True)
+        current_min_date = cache_start
+        current_max_date = cache_end
+
+        # 检查是否需要扩展数据范围
+        need_early_update = req_start < current_min_date
+        need_late_update = req_end > current_max_date
+
+        # 获取早期缺失数据
+        if need_early_update:
+            early_params = original_params | {
+                "start_date": req_start.strftime("%Y%m%d"),
+                "end_date": (current_min_date - timedelta(days=1)).strftime("%Y%m%d"),
+            }
+            early_data = self._query(
+                api_name, params=early_params, use_cache=False, save_cache=False
+            )
+            if not early_data.empty:
+                cached = pd.concat([early_data, cached]).drop_duplicates(
+                    subset=["ts_code", "trade_date"], keep="first"
+                )
+                current_min_date = req_start
+
+        # 获取近期缺失数据
+        if need_late_update:
+            late_params = original_params | {
+                "start_date": (current_max_date + timedelta(days=1)).strftime("%Y%m%d"),
+                "end_date": req_end.strftime("%Y%m%d"),
+            }
+            late_data = self._query(
+                api_name, params=late_params, use_cache=False, save_cache=False
+            )
+            if not late_data.empty:
+                cached = pd.concat([late_data, cached]).drop_duplicates(
+                    subset=["ts_code", "trade_date"], keep="first"
+                )
+                current_max_date = req_end
+
+        # 如果数据范围已扩展，更新缓存
+        if need_early_update or need_late_update:
+            # 删除旧缓存
+            old_cache_path = self.cache_engine._get_cache_path(api_name, cache_params)
+            if old_cache_path.exists():
+                old_cache_path.unlink()
+
+            # 创建新缓存参数
+            new_cache_params = {
+                "ts_code": ts_code,
+                "start_date": current_min_date.strftime("%Y%m%d"),
+                "end_date": current_max_date.strftime("%Y%m%d"),
+            }
+
+            # 保存到新缓存
+            self.cache_engine.save_to_cache(api_name, new_cache_params, cached)
+
+        # 从完整数据中筛选请求范围
+        cached["trade_date_dt"] = pd.to_datetime(cached["trade_date"], format="%Y%m%d")
+        return cached[
+            (cached["trade_date_dt"] >= req_start)
+            & (cached["trade_date_dt"] <= req_end)
+        ].drop(columns=["trade_date_dt"])
+
     def _query(
-        self, api_name: str, params: dict[str, Any], use_cache: bool = True
+        self,
+        api_name: str,
+        params: dict[str, Any],
+        use_cache: bool = True,
+        save_cache: bool = True,
     ) -> pd.DataFrame:
         """统一查询入口"""
         # 尝试从缓存获取
@@ -57,11 +189,12 @@ class TuShareProxy:
         fresh_data: pd.DataFrame = self._convert_dtypes(api_func(**params))
 
         # 保存到缓存
-        if not fresh_data.empty:
+        if not fresh_data.empty and save_cache:
             self.cache_engine.save_to_cache(api_name, params, fresh_data)
 
         return fresh_data
 
+    @incremental_update_wrapper("daily")
     def daily(
         self,
         ts_code: str = None,
@@ -98,108 +231,16 @@ class TuShareProxy:
                 amount	    float	成交额 （千元）
         """
 
-        params = {
-            "ts_code": ts_code,
-            "trade_date": trade_date,
-            "start_date": start_date,
-            "end_date": end_date,
-        }
-
-        # 情况1：请求单日全市场数据（保持原逻辑）
-        if trade_date is not None and ts_code is None:
-            return self._query("daily", params=params)
-
-        # 情况2：请求个股时间段数据（智能增量更新）
-        if ts_code is not None and start_date is not None and end_date is not None:
-            # 转换日期为datetime对象
-            req_start = datetime.strptime(start_date, "%Y%m%d")
-            req_end = datetime.strptime(end_date, "%Y%m%d")
-
-            # 初始缓存范围（6年）
-            cache_end = datetime.now()
-            cache_start = cache_end - timedelta(days=365 * 6)
-
-            # 生成初始缓存查询参数
-            cache_params = {
-                "ts_code": ts_code,
-                "start_date": cache_start.strftime("%Y%m%d"),
-                "end_date": cache_end.strftime("%Y%m%d"),
-            }
-
-            # 尝试从缓存获取
-            cached = self._query("daily", params=cache_params, use_cache=True)
-            current_min_date = cache_start
-            current_max_date = cache_end
-
-            # 检查是否需要扩展数据范围
-            need_early_update = req_start < current_min_date
-            need_late_update = req_end > current_max_date
-
-            # 获取早期缺失数据
-            if need_early_update:
-                early_params = {
-                    "ts_code": ts_code,
-                    "start_date": req_start.strftime("%Y%m%d"),
-                    "end_date": (current_min_date - timedelta(days=1)).strftime(
-                        "%Y%m%d"
-                    ),
-                }
-                early_data = self._query("daily", params=early_params, use_cache=False)
-                if not early_data.empty:
-                    cached = pd.concat([early_data, cached]).drop_duplicates(
-                        subset=["ts_code", "trade_date"], keep="first"
-                    )
-                    current_min_date = req_start  # 更新最小日期范围
-
-            # 获取近期缺失数据
-            if need_late_update:
-                late_params = {
-                    "ts_code": ts_code,
-                    "start_date": (current_max_date + timedelta(days=1)).strftime(
-                        "%Y%m%d"
-                    ),
-                    "end_date": req_end.strftime("%Y%m%d"),
-                }
-                late_data = self._query("daily", params=late_params, use_cache=False)
-                if not late_data.empty:
-                    cached = pd.concat([cached, late_data]).drop_duplicates(
-                        subset=["ts_code", "trade_date"], keep="last"
-                    )
-                    current_max_date = req_end  # 更新最大日期范围
-
-            # 如果数据范围已扩展，更新缓存参数并重新保存
-            if need_early_update or need_late_update:
-                # 删除旧缓存
-                old_cache_path = self.cache_engine._get_cache_path(
-                    "daily", cache_params
-                )
-                if old_cache_path.exists():
-                    old_cache_path.unlink()
-
-                # 创建新缓存参数（反映实际数据范围）
-                new_cache_params = {
-                    "ts_code": ts_code,
-                    "start_date": current_min_date.strftime("%Y%m%d"),
-                    "end_date": current_max_date.strftime("%Y%m%d"),
-                }
-
-                # 保存到新缓存
-                self.cache_engine.save_to_cache("daily", new_cache_params, cached)
-            else:
-                new_cache_params = cache_params
-
-            # 从完整数据中筛选请求范围
-            cached["trade_date_dt"] = pd.to_datetime(
-                cached["trade_date"], format="%Y%m%d"
-            )
-
-            return cached[
-                (cached["trade_date_dt"] >= req_start)
-                & (cached["trade_date_dt"] <= req_end)
-            ].drop(columns=["trade_date_dt"])
-
         # 其他情况保持原逻辑
-        return self._query("daily", params=params)
+        return self._query(
+            "daily",
+            params={
+                "ts_code": ts_code,
+                "trade_date": trade_date,
+                "start_date": start_date,
+                "end_date": end_date,
+            },
+        )
 
     def trade_cal(
         self,
@@ -309,6 +350,7 @@ class TuShareProxy:
             fields="ts_code,symbol,name,full_name,cnspell,exchange", list_status="L"
         )
 
+    @incremental_update_wrapper("stk_limit")
     def stk_limit(
         self,
         ts_code: str = None,
@@ -357,8 +399,9 @@ if __name__ == "__main__":
 
     print(
         proxy.daily(
-            ts_code="000002.SZ",
+            ts_code="300191.SZ",
             start_date=(datetime.now() - timedelta(days=11)).strftime("%Y%m%d"),
+            # end_date=datetime(year=2025, month=4, day=23).strftime("%Y%m%d"),
             end_date=datetime.now().strftime("%Y%m%d"),
         ).head(5)
     )

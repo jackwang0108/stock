@@ -4,6 +4,7 @@ tushare:
 api_profile:
     daily:
         expire_days: 1
+        incremental_update: True
     trade_cal:
         expire_days: 1
     stock_basic:
@@ -12,8 +13,10 @@ api_profile:
         expire_days: 1
     stk_limits:
         expire_days: 1
+        incremental_update: True
     default:
         expire_days: 5
+        incremental_update: False
 
 field_types:
     ts_code: "str"

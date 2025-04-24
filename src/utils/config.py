@@ -36,7 +36,10 @@ class TushareConfig(BaseModel):
 
 
 class APIConfig(BaseModel):
-    expire_days: int = 10
+    expire_days: int = Field(default=5)
+    incremental_update: bool = Field(default=False)
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class APIProfile(BaseModel):
