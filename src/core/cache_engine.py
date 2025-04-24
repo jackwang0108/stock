@@ -86,7 +86,14 @@ class TushareCacheEngine:
             return None
 
         self.hit += 1
-        return pd.read_csv(cache_path, encoding="utf-8", dtype=str)
+
+        try:
+            return pd.read_csv(cache_path, encoding="utf-8", dtype=str)
+        except pd.errors.EmptyDataError:
+            print(f"缓存文件{cache_path}损坏, 修复该文件")
+            cache_path.unlink()
+            self.missed += 1
+            return None
 
 
 if __name__ == "__main__":
