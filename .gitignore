@@ -2,6 +2,7 @@ cache
 test*
 analysis
 dataset
+!src/analysis
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
