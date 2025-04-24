@@ -10,6 +10,7 @@ tushare_proxy.py 为TuShare的代理实现
 
 # Standard Library
 from collections.abc import Callable
+from datetime import datetime, timedelta
 from typing import Any, Literal, Optional
 
 # Third-Party Library
@@ -18,6 +19,7 @@ import tushare as ts
 
 # My Library
 from ..utils.config import Config
+
 from .cache_engine import TushareCacheEngine
 
 
@@ -90,6 +92,31 @@ class TuShareProxy:
                 vol	        float	成交量 （手）
                 amount	    float	成交额 （千元）
         """
+
+        params = {
+            "ts_code": ts_code,
+            "trade_date": trade_date,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+
+        # 如果加载个股信息, 默认下载近六年的数据, 而后返回指定日期内的数据
+        if ts_code is not None and start_date is not None and end_date is not None:
+            end_date: datetime = datetime.now()
+            start_date: datetime = end_date - timedelta(days=365 * 6)
+            params["start_date"] = start_date.strftime("%Y%m%d")
+            params["end_date"] = end_date.strftime("%Y%m%d")
+
+            cached = self._query("daily", params=params, use_cache=True)
+
+            copy = cached.copy()
+
+            copy["trade_date"] = pd.to_datetime(copy["trade_date"], format="%Y%m%d")
+
+            return cached[
+                (copy["trade_date"] >= start_date) & (copy["trade_date"] <= end_date)
+            ]
+
         return self._query(
             api_name="daily",
             params={
