@@ -9,6 +9,12 @@
             "type": "debugpy",
             "request": "launch",
             "module": "src.analysis.${fileBasenameNoExtension}"
+        },
+        {
+            "name": "Python 调试程序: src.utils模块",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.utils.${fileBasenameNoExtension}",
         }
     ]
 }
