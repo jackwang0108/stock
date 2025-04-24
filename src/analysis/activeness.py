@@ -59,8 +59,8 @@ def main():
     )
     main_market_shares = listed_shares[main_market_mask]
 
-    st_mask = listed_shares["name"].str.contains("ST")
-    main_market_shares = main_market_shares[~st_mask]
+    st_mask = main_market_shares["name"].str.contains("ST")
+    main_market_shares = main_market_shares[~st_mask].reindex()
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),
