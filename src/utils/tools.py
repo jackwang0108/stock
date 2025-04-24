@@ -9,8 +9,11 @@ tools.py 提供了一系列方便分析股票的工具
 """
 
 # Standard Library
+from typing import Optional
+from datetime import date, datetime, timedelta
 
 # Third-Party Library
+import pandas as pd
 
 # Torch Library
 
@@ -50,6 +53,44 @@ def name2symbol(name: str) -> str:
 def symbol2name(symbol: str) -> str:
     """symbol2name 将交易所股票代码转换为股票名称"""
     return proxy.listed_shares().set_index("symbol").loc[symbol]["name"]
+
+
+def concat_df(
+    df1: pd.DataFrame, df2: pd.DataFrame, remove_duplicates: bool = True
+) -> pd.DataFrame:
+    """concat_df 将两个DataFrame按列拼接，去除重复列"""
+    common_cols = set(df1.columns) & set(df2.columns)
+    df2_unique = df2.drop(columns=common_cols)
+    return pd.concat(
+        [df1, df2_unique if remove_duplicates else df2], axis=1, ignore_index=False
+    )
+
+
+def get_relative_trade_day(
+    relative_days: int,
+    start_date: Optional[str | date | datetime] = None,
+    end_date: Optional[str | date | datetime] = None,
+    return_str: bool = True,
+):
+    assert start_date is not None or end_date is not None
+
+    if start_date is None:
+        end_date = (
+            datetime.strptime(end_date, "%Y%m%d")
+            if isinstance(end_date, str)
+            else end_date
+        )
+        start_date = end_date - timedelta(days=relative_days)
+        return start_date.strftime("%Y%m%d") if return_str else start_date
+
+    if end_date is None:
+        start_date = (
+            datetime.strptime(start_date, "%Y%m%d")
+            if isinstance(start_date, str)
+            else start_date
+        )
+        end_date = start_date + timedelta(days=relative_days)
+        return end_date.strftime("%Y%m%d") if return_str else end_date
 
 
 if __name__ == "__main__":
