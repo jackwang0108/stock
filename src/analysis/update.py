@@ -69,7 +69,6 @@ def main():
     ) as progress:
         task = progress.add_task("更新A股日线数据", total=len(main_market_shares))
 
-        result = []
         for ts_code in main_market_shares["ts_code"]:
 
             name = tscode2name(ts_code)
