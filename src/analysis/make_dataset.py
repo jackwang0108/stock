@@ -112,7 +112,7 @@ def main():
     global progress
 
     active_shares = read_active_shares(
-        Path(__file__).parents[2] / "analysis/top3group.txt"
+        Path(__file__).parents[2] / "analysis/core_shares.txt"
     )
 
     with (
