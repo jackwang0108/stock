@@ -71,7 +71,9 @@ def main():
     with Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TextColumn(
+            "[progress.percentage]{task.percentage:>3.0f}% [{task.completed:>4d}/{task.total}]"
+        ),
         TimeRemainingColumn(),
         TimeElapsedColumn(),
         expand=True,
