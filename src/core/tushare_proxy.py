@@ -23,7 +23,9 @@ from ..utils.config import Config
 from .cache_engine import TushareCacheEngine
 
 
-def incremental_update_wrapper(api_name: str) -> Callable:
+def incremental_update_wrapper(
+    api_name: str, cache_start: datetime, cache_end: datetime
+) -> Callable:
     """智能增量更新装饰器工厂"""
 
     def decorator(method: Callable) -> Callable:
@@ -45,13 +47,15 @@ def incremental_update_wrapper(api_name: str) -> Callable:
                 return method(self, *args, **kwargs)
 
             # 情况2：时间段查询（启用增量更新）
-            if ts_code is not None and start_date is not None and end_date is not None:
+            if start_date is not None and end_date is not None:
                 return self._smart_incremental_query(
                     api_name=api_name,
                     ts_code=ts_code,
                     start_date=start_date,
                     end_date=end_date,
                     original_params=kwargs,
+                    cache_end=cache_end,
+                    cache_start=cache_start,
                 )
 
             # 其他情况保持原逻辑
@@ -85,6 +89,8 @@ class TuShareProxy:
         ts_code: str,
         start_date: str,
         end_date: str,
+        cache_start: datetime,
+        cache_end: datetime,
         original_params: dict,
     ) -> pd.DataFrame:
         """
@@ -93,10 +99,6 @@ class TuShareProxy:
         # 转换日期为datetime对象
         req_start = datetime.strptime(start_date, "%Y%m%d")
         req_end = datetime.strptime(end_date, "%Y%m%d")
-
-        # 初始缓存范围（6年）
-        cache_end = datetime(year=2025, month=4, day=23)
-        cache_start = cache_end - timedelta(days=365 * 6)
 
         # 生成初始缓存查询参数
         cache_params = {
@@ -194,7 +196,11 @@ class TuShareProxy:
 
         return fresh_data
 
-    @incremental_update_wrapper("daily")
+    @incremental_update_wrapper(
+        "daily",
+        cache_end=(ce := datetime(year=2025, month=4, day=23)),
+        cache_start=ce - timedelta(days=365 * 6),
+    )
     def daily(
         self,
         ts_code: str = None,
@@ -350,7 +356,11 @@ class TuShareProxy:
             fields="ts_code,symbol,name,full_name,cnspell,exchange", list_status="L"
         )
 
-    @incremental_update_wrapper("stk_limit")
+    @incremental_update_wrapper(
+        "stk_limit",
+        cache_end=(ce := datetime(year=2025, month=4, day=23)),
+        cache_start=ce - timedelta(days=365 * 6),
+    )
     def stk_limit(
         self,
         ts_code: str = None,
@@ -389,6 +399,141 @@ class TuShareProxy:
             },
         )
 
+    def limit_list_ths(
+        self,
+        trade_date: Optional[str] = None,
+        ts_code: Optional[str] = None,
+        limit_type: Literal[
+            "涨停池", "连板池", "冲刺涨停", "炸板池", "跌停池"
+        ] = "涨停池",
+        market: Literal["HS", "GEM", "STAR"] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """
+        limit_list_ths 获取同花顺每日涨跌停榜单数据，历史数据从20231101开始提供，增量每天16点左右更新
+
+        Args:
+            trade_date (Optional[str], optional): 交易日期
+            ts_code (Optional[str], optional): 股票代码
+            limit_type (Literal[, optional): 涨停池、连板池、冲刺涨停、炸板池、跌停池，默认：涨停池
+            market (Literal[&quot;HS&quot;, &quot;GEM&quot;, &quot;STAR&quot;], optional): HS-沪深主板 GEM-创业板 STAR-科创板
+            start_date (Optional[str], optional): 开始日期
+            end_date (Optional[str], optional): 结束日期
+
+        Returns:
+            pd.DataFrame: 同花顺涨跌停榜单
+                名称	             类型	默认显示	描述
+                trade_date	        str	    Y	    交易日期
+                ts_code	            str	    Y	    股票代码
+                name	            str	    Y	    股票名称
+                price	            float	Y	    收盘价(元)
+                pct_chg	            float	Y	    涨跌幅%
+                open_num	        int	    Y	    打开次数
+                lu_desc	            str	    Y	    涨停原因
+                limit_type	        str	    Y	    板单类别
+                tag	                str	    Y	    涨停标签
+                status	            str	    Y	    涨停状态（N连板、一字板）
+                first_lu_time	    str	    N	    首次涨停时间
+                last_lu_time	    str	    N	    最后涨停时间
+                first_ld_time	    str	    N	    首次跌停时间
+                last_ld_time	    str	    N	    最后跌停时间
+                limit_order	        float	Y	    封单量(手)
+                limit_amount	    float	Y	    封单额(元)
+                turnover_rate	    float	Y	    换手率%
+                free_float	        float	Y	    实际流通(元)
+                lu_limit_order	    float	Y	    最大封单(元)
+                limit_up_suc_rate	float	Y	    近一年涨停封板率
+                turnover	        float	Y	    成交额
+                rise_rate	        float	N	    涨速
+                sum_float	        float	N	    总市值（亿元）
+                market_type	        str	    Y	    股票类型：HS沪深主板、GEM创业板、STAR科创板
+        """
+        params = {
+            "trade_date": trade_date,
+            "ts_code": ts_code,
+            "limit_type": limit_type,
+            "market": market,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+        return self._query(
+            api_name="limit_list_ths",
+            params=params,
+        )
+
+    def limit_list_d(
+        self,
+        trade_date: Optional[str] = None,
+        ts_code: Optional[str] = None,
+        limit_type: Literal["U", "D", "Z"] = "U",
+        exchange: Literal["SH", "SZ", "BJ"] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> list[pd.DataFrame]:
+        """
+        limit_list_d 获取A股每日涨跌停、炸板数据情况，数据从2020年开始（不提供ST股票的统计）
+
+        两种用法:
+            - 方式一: 只输入trade_date, 返回全市场当日所有股票的涨跌停、炸板数据
+            - 方式二: 输入start_date, end_date, 在指定日期内的涨跌停、炸板数据
+            - 最好不要只获取单个股票的涨跌停数据，因为数据量太小，浪费请求次数
+
+        Args:
+            trade_date (Optional[str], optional): 交易日期
+            ts_code (Optional[str], optional): 股票代码
+            limit_type (Literal[&quot;U&quot;, &quot;D&quot;, &quot;Z&quot;], optional): 涨跌停类型（U涨停D跌停Z炸板）
+            exchange (Literal[&quot;SH&quot;, &quot;SZ&quot;, &quot;BJ&quot;], optional): 交易所（SH上交所SZ深交所BJ北交所）
+            start_date (Optional[str], optional): 开始日期
+            end_date (Optional[str], optional): 结束日期
+
+        Returns:
+            pd.DataFrame: A股每日涨跌停/炸板数据
+                名称	         类型	默认显示	描述
+                trade_date	    str	    Y	    交易日期
+                ts_code	        str	    Y	    股票代码
+                industry	    str	    Y	    所属行业
+                name	        str	    Y	    股票名称
+                close	        float	Y	    收盘价
+                pct_chg	        float	Y	    涨跌幅
+                amount	        float	Y	    成交额
+                limit_amount	float	Y	    板上成交金额(成交价格为该股票跌停价的所有成交额的总和，涨停无此数据)
+                float_mv	    float	Y	    流通市值
+                total_mv	    float	Y	    总市值
+                turnover_ratio	float	Y	    换手率
+                fd_amount	    float	Y	    封单金额（以涨停价买入挂单的资金总量）
+                first_time	    str	    Y	    首次封板时间（跌停无此数据）
+                last_time	    str	    Y	    最后封板时间
+                open_times	    int	    Y	    炸板次数(跌停为开板次数)
+                up_stat	        str	    Y	    涨停统计（N/T T天有N次涨停）
+                limit_times	    int	    Y	    连板数（个股连续封板数量）
+                limit	        str	    Y	    D跌停U涨停Z炸板
+
+        """
+
+        trade_dates = [trade_date] if trade_date else []
+
+        start = datetime.strptime(start_date, "%Y%m%d")
+        end = datetime.strptime(end_date, "%Y%m%d")
+        while start <= end:
+            trade_dates.append(start.strftime("%Y%m%d"))
+            start += timedelta(days=1)
+
+        return [
+            self._query(
+                api_name="limit_list_d",
+                params={
+                    "trade_date": trade_date,
+                    "ts_code": ts_code,
+                    "limit_type": limit_type,
+                    "exchange": exchange,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                },
+            )
+            for trade_date in trade_dates
+        ]
+
 
 if __name__ == "__main__":
     from datetime import datetime, timedelta
@@ -397,11 +542,4 @@ if __name__ == "__main__":
     config = load_config()
     proxy = TuShareProxy(config)
 
-    print(
-        proxy.daily(
-            ts_code="300191.SZ",
-            start_date=(datetime.now() - timedelta(days=11)).strftime("%Y%m%d"),
-            # end_date=datetime(year=2025, month=4, day=23).strftime("%Y%m%d"),
-            end_date=datetime.now().strftime("%Y%m%d"),
-        ).head(5)
-    )
+    print(proxy.limit_list_d(start_date="20250421", end_date="20250424"))

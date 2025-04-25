@@ -14,11 +14,16 @@ api_profile:
     stk_limits:
         expire_days: 1
         incremental_update: True
+    limit_list_ths:
+        expire_days: 1
+    limit_list_d:
+        expire_days: 1
     default:
         expire_days: 5
         incremental_update: False
 
 field_types:
+    # daily
     ts_code: "str"
     trade_date: "str"
     open: "float64"
@@ -30,10 +35,14 @@ field_types:
     pct_chg: "float64"
     vol: "float64"
     amount: "float64"
+
+    # trade_cal
     exchange: "str"
     cal_date: "str"
     is_open: "str"
     pretrade_date: "str"
+
+    # stock_basic
     symbol: "str"
     name: "str"
     area: "str"
@@ -49,5 +58,41 @@ field_types:
     is_hs: "str"
     act_name: "str"
     act_ent_type: "str"
+
+    # stk_limits
     up_limit: "float64"
     down_limit: "float64"
+
+    # limit_list_ths
+    price: "float64"
+    open_num: "int64"
+    lu_desc: "str"
+    limit_type: "str"
+    tag: "str"
+    status: "str"
+    first_lu_time: "str"
+    last_lu_time: "str"
+    first_ld_time: "str"
+    last_ld_time: "str"
+    limit_order: "float64"
+    limit_amount: "float64"
+    turnover_rate: "float64"
+    free_float: "float64"
+    lu_limit_order: "float64"
+    limit_up_suc_rate: "float64"
+    turnover: "float64"
+    rise_rate: "float64"
+    sum_float: "float64"
+    market_type: "str"
+
+    # limit_list_d
+    float_mv: "float64"
+    total_mv: "float64"
+    turnover_ratio: "float64"
+    fd_amount: "float64"
+    first_time: "str"
+    last_time: "str"
+    open_times: "int64"
+    up_stat: "str"
+    limit: "str"
+    limit_times: "int64"

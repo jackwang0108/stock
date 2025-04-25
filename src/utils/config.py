@@ -53,6 +53,8 @@ class APIProfile(BaseModel):
     stock_basic: Optional[APIConfig] = None
     listed_shares: Optional[APIConfig] = None
     stk_limits: Optional[APIConfig] = None
+    limit_list_ths: Optional[APIConfig] = None
+    limit_list_d: Optional[APIConfig] = None
 
     def get_config(self, api_name: str) -> APIConfig:
         """获取指定API的配置, 如果配置文件中没有特定配置则返回默认配置"""
@@ -107,6 +109,51 @@ class FieldTypesConfig(BaseModel):
     act_ent_type: PandasDType = Field("str", description="实控人企业性质")
     up_limit: PandasDType = Field("float64", description="涨停价")
     down_limit: PandasDType = Field("float64", description="跌停价")
+
+    price: PandasDType = Field("float64", description="当前价格")
+    open_num: PandasDType = Field("int64", description="打开次数")
+    lu_desc: PandasDType = Field("str", description="涨停原因")
+    limit_type: PandasDType = Field("str", description="板单类别")
+    tag: PandasDType = Field("str", description="涨停标签")
+    status: PandasDType = Field("str", description="涨停状态（N连板、一字板）")
+    first_lu_time: PandasDType = Field(
+        "str", description="首次涨停时间（格式：YYYYMMDD）"
+    )
+    last_lu_time: PandasDType = Field(
+        "str", description="最后涨停时间（格式：YYYYMMDD）"
+    )
+    first_ld_time: PandasDType = Field(
+        "str", description="首次跌停时间（格式：YYYYMMDD）"
+    )
+    last_ld_time: PandasDType = Field(
+        "str", description="最后跌停时间（格式：YYYYMMDD）"
+    )
+    limit_order: PandasDType = Field("float64", description="封单量(手)")
+    limit_amount: PandasDType = Field("float64", description="封单额(万元)")
+    turnover_rate: PandasDType = Field("float64", description="换手率（%）")
+    free_float: PandasDType = Field("float64", description="实际流通(元)")
+    lu_limit_order: PandasDType = Field("float64", description="最大封单(元)")
+    limit_up_suc_rate: PandasDType = Field("float64", description="近一年涨停封板率")
+    turnover: PandasDType = Field("float64", description="成交额")
+    rise_rate: PandasDType = Field("float64", description="涨速")
+    sum_float: PandasDType = Field("float64", description="总市值（亿元）")
+    market_type: PandasDType = Field(
+        "str", description="股票类型：HS沪深主板、GEM创业板、STAR科创板 "
+    )
+    float_mv: PandasDType = Field("float64", description="流通市值（亿元）")
+    total_mv: PandasDType = Field("float64", description="总市值（亿元）")
+    turnover_ratio: PandasDType = Field("float64", description="换手率（%）")
+    fd_amount: PandasDType = Field(
+        "float64", description="封单金额（以涨停价买入挂单的资金总量）"
+    )
+    first_time: PandasDType = Field("str", description="首次涨停时间（格式：YYYYMMDD）")
+    last_time: PandasDType = Field("str", description="最后涨停时间（格式：YYYYMMDD）")
+    open_times: PandasDType = Field(
+        "int64", description="打开次数（涨/跌停后打开的次数）"
+    )
+    up_stat: PandasDType = Field("str", description="涨停状态（N/T T天有N次涨停")
+    limit_times: PandasDType = Field("int64", description="连板数（个股连续封板数量）")
+    limit: PandasDType = Field("str", description="D跌停U涨停Z炸板 ")
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
