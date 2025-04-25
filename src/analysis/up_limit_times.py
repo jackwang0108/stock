@@ -1,9 +1,9 @@
 """
-activeness.py 计算全市场股票的股性
+up_limit_times.py 计算全市场股票在过去一年的涨停次数
 
     @Time    : 2025/04/23
     @Author  : JackWang
-    @File    : activeness.py
+    @File    : up_limit_times.py
     @IDE     : VsCode
     @Copyright Copyright Shihong Wang (c) 2025 with GNU Public License V3.0
 """
@@ -108,7 +108,9 @@ def main():
 
     output_dir = Path(__file__).parents[2] / "analysis"
     output_dir.mkdir(parents=True, exist_ok=True)
-    result.to_csv(Path(__file__).parents[2] / "analysis/activeness.csv", index=False)
+    result.to_csv(
+        Path(__file__).parents[2] / "analysis/up_limit_times.csv", index=False
+    )
 
 
 if __name__ == "__main__":
