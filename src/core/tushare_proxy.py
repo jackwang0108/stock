@@ -79,10 +79,6 @@ class TuShareProxy:
             {k: v for k, v in dtypes.items() if k in df.columns}, errors="raise"
         )
 
-    def _get_last_trade_date(self) -> str:
-        """获取最近的一个交易日"""
-        pass
-
     def _smart_incremental_query(
         self,
         api_name: str,
@@ -281,6 +277,39 @@ class TuShareProxy:
                 "exchange": exchange,
             },
         )
+
+    def last_trade_date(
+        self, weekday: int = None, return_str: bool = True
+    ) -> str | datetime:
+        """
+        last_trade_date 获取最近的一个指定交易日
+
+        Args:
+            weekday (int): 指定的星期几（1-5，1表示周一，5表示周五）
+            return_str (bool): 是否返回字符串格式的日期，默认为True
+
+        Returns:
+            str: 最近的一个指定交易日
+        """
+        today = datetime.now()
+        last_trade_date = self.trade_cal(
+            start_date=(today - timedelta(days=30)).strftime("%Y%m%d"),
+            end_date=today.strftime("%Y%m%d"),
+            is_open="1",
+        )
+
+        last_trade_date["cal_date"] = pd.to_datetime(
+            last_trade_date["cal_date"], format="%Y%m%d"
+        )
+
+        if weekday is not None:
+            assert 1 <= weekday <= 5, "weekday must be between 1 and 5"
+            last_trade_date = last_trade_date[
+                last_trade_date["cal_date"].dt.weekday == (weekday - 1)
+            ].reset_index(drop=True)
+
+        result: datetime = last_trade_date.loc[0]["cal_date"]
+        return result.strftime("%Y%m%d") if return_str else result
 
     def stock_basic(
         self,
@@ -542,4 +571,4 @@ if __name__ == "__main__":
     config = load_config()
     proxy = TuShareProxy(config)
 
-    print(proxy.limit_list_d(start_date="20250421", end_date="20250424"))
+    print(proxy.last_trade_date(weekday=3))
