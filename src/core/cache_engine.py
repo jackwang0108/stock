@@ -51,6 +51,10 @@ class TushareCacheEngine:
         if total == 0:
             return {"hit": 0, "missed": 0, "expired": 0}
         return {
+            "total": total,
+            "hit": self.hit,
+            "missed": self.missed,
+            "expired": self.expired,
             "hit_rate": round(self.hit / total * 100, 2),
             "miss_rate": round(self.missed / total * 100, 2),
             "expired_rate": round(self.expired / total * 100, 2),

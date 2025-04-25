@@ -183,8 +183,21 @@ class TuShareProxy:
             return self._convert_dtypes(cached)
 
         # 调用真实API
-        api_func: Callable = getattr(self.api, api_name)
-        fresh_data: pd.DataFrame = self._convert_dtypes(api_func(**params))
+        try:
+            api_func: Callable = getattr(self.api, api_name)
+            fresh_data: pd.DataFrame = self._convert_dtypes(api_func(**params))
+        except Exception as e:
+            print(f"API调用失败: {api_name}, 错误信息: {e}")
+            statics = self.cache_engine.statics()
+            print(
+                f"缓存引擎信息:\n"
+                f"\t总请求次数: {statics['total']}\n"
+                f"\t\t缓存命中次数: {statics['hit']}\n"
+                f"\t\t缓存未命中次数: {statics['missed']}\n"
+                f"\t\t缓存过期次数: {statics['expired']}\n"
+                f"\t命中率: {statics['hit_rate']}%, 未命中率: {statics['miss_rate']}, 过期率: {statics['expire_rate']}\n"
+            )
+            raise e
 
         # 保存到缓存
         if not fresh_data.empty and save_cache:
