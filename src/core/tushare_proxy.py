@@ -161,10 +161,14 @@ class TuShareProxy:
 
         # 从完整数据中筛选请求范围
         cached["trade_date_dt"] = pd.to_datetime(cached["trade_date"], format="%Y%m%d")
-        return cached[
-            (cached["trade_date_dt"] >= req_start)
-            & (cached["trade_date_dt"] <= req_end)
-        ].drop(columns=["trade_date_dt"])
+        return (
+            cached[
+                (cached["trade_date_dt"] >= req_start)
+                & (cached["trade_date_dt"] <= req_end)
+            ]
+            .drop(columns=["trade_date_dt"])
+            .reset_index(drop=True)
+        )
 
     def _query(
         self,
